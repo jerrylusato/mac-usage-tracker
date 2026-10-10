@@ -4,6 +4,14 @@ A native, local-only macOS companion to [Phone Usage](https://github.com/jerrylu
 Tracks active foreground application time, with a dashboard, Monday–Sunday charts, history,
 JSON export, manual monthly deletion, and daily/weekly notification summaries.
 
+## Download and install
+
+Get the universal Mac download at [usage.jerrylusato.com](https://usage.jerrylusato.com).
+**Not notarized by Apple — manual approval required.** Open the DMG, drag Mac Usage into
+Applications, then try opening it. For an unidentified-developer block, use
+**System Settings → Privacy & Security → Open Anyway** if you trust the download.
+See [installation and verification details](RELEASING.md#installing-the-public-download).
+
 ## Build and run
 
 Requires macOS 13+ and Swift 5.10 or newer. Building needs Xcode Command Line Tools;
@@ -20,8 +28,8 @@ to enable launch at login, allow notifications, and choose the idle timeout. Clo
 dashboard keeps tracking running in the menu bar; **Quit Mac Usage** stops it.
 The build produces an ad-hoc signed app for local use, without Developer ID notarization.
 The build supports both Apple Silicon and Intel. Versions come from `version.json`.
-GitHub Actions tests and builds a universal local-build artifact; public DMGs use the
-separate Developer ID signing and notarization workflow.
+GitHub Actions tests and builds universal DMGs. Current public downloads use an ad-hoc
+signature; a separate Developer ID signing and notarization workflow is available for later.
 
 ## What is counted
 

@@ -1,0 +1,48 @@
+name: Release without notarization
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+jobs:
+  mac:
+    if: startsWith(github.ref, 'refs/tags/v') && vars.MAC_RELEASE_MODE == 'adhoc'
+    runs-on: macos-15
+    permissions:
+      contents: write
+      id-token: write
+      attestations: write
+    env:
+      TAG: ${{ github.ref_name }}
+      MAC_SIGNING_IDENTITY: '-'
+      RELEASE_SIGNING_REQUIRED: '0'
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - run: python3 scripts/release.py --tag "$TAG" --validate-only
+      - run: xcrun swift-format lint --strict --recursive Package.swift Sources Tests
+      - run: swift test
+      - name: Build and verify universal ad-hoc installer
+        run: |
+          set -euo pipefail
+          ./scripts/build-app.sh
+          codesign --display --verbose=2 'dist/Mac Usage.app' 2>&1 | grep -Fx 'Signature=adhoc'
+          ./scripts/package-dmg.sh
+          ./scripts/verify-dmg.sh
+          python3 scripts/release.py --signing ad-hoc --tag "$TAG" "dist/mac-usage-${TAG#v}-universal.dmg"
+      - uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
+        with:
+          subject-path: dist/*.dmg
+      - name: Publish immutable GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            echo 'Release already exists; publish a new version instead of replacing assets'; exit 1
+          fi
+          gh release create "$TAG" dist/*.dmg dist/SHA256SUMS dist/release-manifest.json \
+            --verify-tag --title "Mac Usage ${TAG#v}" --notes-file RELEASE-NOTES.md

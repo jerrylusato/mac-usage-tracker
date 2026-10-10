@@ -25,6 +25,7 @@ def version():
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--tag")
+    parser.add_argument("--signing", choices=["ad-hoc", "developer-id"])
     parser.add_argument("--validate-only", action="store_true")
     parser.add_argument("files", nargs="*")
     args = parser.parse_args()
@@ -39,6 +40,8 @@ def main():
         return
     if not args.files:
         parser.error("At least one release package is required")
+    if app == "mac" and not args.signing:
+        parser.error("Mac packages require an explicit signing status")
     output = ROOT / "dist"
     output.mkdir(exist_ok=True)
     files = []
@@ -51,6 +54,8 @@ def main():
     commit = subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=ROOT, text=True).strip()
     manifest = {"app": app, "version": name, "build": build, "tag": args.tag,
                 "commit": commit, "files": files}
+    if app == "mac":
+        manifest.update(signing=args.signing, notarized=args.signing == "developer-id")
     (output / "release-manifest.json").write_text(json.dumps(manifest, indent=2) + "\n")
     (output / "SHA256SUMS").write_text("".join(f'{item["sha256"]}  {item["name"]}\n' for item in files))
     print(f"Packaged {app} {name} from {commit}")
