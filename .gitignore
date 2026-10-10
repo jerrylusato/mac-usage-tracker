@@ -3,3 +3,12 @@
 dist/
 .DS_Store
 *.xcuserstate
+
+# Local credentials and signing exports
+.env
+.env.*
+!.env.example
+*.p12
+*.p8
+*.key
+*.pem
