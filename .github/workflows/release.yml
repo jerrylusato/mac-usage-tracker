@@ -70,7 +70,7 @@ jobs:
           xcrun stapler validate "dist/mac-usage-${TAG#v}-universal.dmg"
           ./scripts/verify-dmg.sh
           python3 scripts/release.py --tag "$TAG" "dist/mac-usage-${TAG#v}-universal.dmg"
-      - uses: actions/attest-build-provenance@43d14bc2b83dec42d39ecae14e916627a18bb661 # v3
+      - uses: actions/attest-build-provenance@977bb373ede98d70efdf65b84cb5f73e068dcc2a # v3
         with:
           subject-path: dist/*.dmg
       - name: Publish immutable GitHub release
