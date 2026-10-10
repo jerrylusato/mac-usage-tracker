@@ -19,7 +19,9 @@ Copy `dist/Mac Usage.app` to `/Applications` for regular use. Open **Mac Usage â
 to enable launch at login, allow notifications, and choose the idle timeout. Closing the
 dashboard keeps tracking running in the menu bar; **Quit Mac Usage** stops it.
 The build produces an ad-hoc signed app for local use, without Developer ID notarization.
-GitHub Actions tests and builds an app artifact for its runner's architecture.
+The build supports both Apple Silicon and Intel. Versions come from `version.json`.
+GitHub Actions tests and builds a universal local-build artifact; public DMGs use the
+separate Developer ID signing and notarization workflow.
 
 ## What is counted
 
@@ -73,3 +75,9 @@ swift test
 ./scripts/build-app.sh
 codesign --verify --strict "dist/Mac Usage.app"
 ```
+
+## Public releases
+
+MIT licensed. Visit [usage.jerrylusato.com](https://usage.jerrylusato.com) for release
+availability, downloads, and installation help. See [RELEASING.md](RELEASING.md) for the
+tag-based release workflow, Apple signing prerequisites, checksums, and provenance.

@@ -1,0 +1,88 @@
+name: Release
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+jobs:
+  mac:
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: macos-15
+    permissions:
+      contents: write
+      id-token: write
+      attestations: write
+    env:
+      TAG: ${{ github.ref_name }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - run: python3 scripts/release.py --tag "$TAG" --validate-only
+      - run: xcrun swift-format lint --strict --recursive Package.swift Sources Tests
+      - run: swift test
+      - name: Import Developer ID signing certificate and notarization key
+        env:
+          CERTIFICATE_BASE64: ${{ secrets.MAC_CERTIFICATE_BASE64 }}
+          CERTIFICATE_PASSWORD: ${{ secrets.MAC_CERTIFICATE_PASSWORD }}
+          API_KEY_BASE64: ${{ secrets.APPLE_API_KEY_BASE64 }}
+        run: |
+          set -euo pipefail
+          test -n "$CERTIFICATE_BASE64" && test -n "$CERTIFICATE_PASSWORD" && test -n "$API_KEY_BASE64" || {
+            echo 'Developer ID certificate and Apple notarization credentials are required'; exit 1;
+          }
+          KEYCHAIN_PATH="$RUNNER_TEMP/release.keychain-db"
+          umask 077
+          printf '%s' "$CERTIFICATE_BASE64" | base64 --decode > "$RUNNER_TEMP/certificate.p12"
+          printf '%s' "$API_KEY_BASE64" | base64 --decode > "$RUNNER_TEMP/AuthKey.p8"
+          KEYCHAIN_PASSWORD=$(openssl rand -hex 32)
+          echo "::add-mask::$KEYCHAIN_PASSWORD"
+          security create-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+          security set-keychain-settings -lut 21600 "$KEYCHAIN_PATH"
+          security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+          security import "$RUNNER_TEMP/certificate.p12" -P "$CERTIFICATE_PASSWORD" -k "$KEYCHAIN_PATH" -T /usr/bin/codesign
+          security set-key-partition-list -S apple-tool:,apple: -k "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH" >/dev/null
+          security list-keychains -d user -s "$KEYCHAIN_PATH"
+      - name: Build and notarize universal Mac app
+        env:
+          MAC_SIGNING_IDENTITY: ${{ secrets.MAC_SIGNING_IDENTITY }}
+          APPLE_API_KEY_ID: ${{ secrets.APPLE_API_KEY_ID }}
+          APPLE_API_ISSUER_ID: ${{ secrets.APPLE_API_ISSUER_ID }}
+          RELEASE_SIGNING_REQUIRED: '1'
+        run: |
+          set -euo pipefail
+          test -n "$APPLE_API_KEY_ID" && test -n "$APPLE_API_ISSUER_ID"
+          ./scripts/build-app.sh
+          APP='dist/Mac Usage.app'
+          ditto -c -k --keepParent "$APP" "$RUNNER_TEMP/notarize.zip"
+          xcrun notarytool submit "$RUNNER_TEMP/notarize.zip" --key "$RUNNER_TEMP/AuthKey.p8"             --key-id "$APPLE_API_KEY_ID" --issuer "$APPLE_API_ISSUER_ID" --wait --timeout 30m
+          xcrun stapler staple "$APP"
+          xcrun stapler validate "$APP"
+          codesign --verify --strict "$APP"
+          spctl --assess --type execute --verbose "$APP"
+          test "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$APP/Contents/Info.plist")" = "${TAG#v}"
+          hdiutil create -volname 'Mac Usage' -srcfolder "$APP" -ov -format UDZO "dist/mac-usage-${TAG#v}-universal.dmg"
+          codesign --sign "$MAC_SIGNING_IDENTITY" --timestamp "dist/mac-usage-${TAG#v}-universal.dmg"
+          xcrun notarytool submit "dist/mac-usage-${TAG#v}-universal.dmg" --key "$RUNNER_TEMP/AuthKey.p8"             --key-id "$APPLE_API_KEY_ID" --issuer "$APPLE_API_ISSUER_ID" --wait --timeout 30m
+          xcrun stapler staple "dist/mac-usage-${TAG#v}-universal.dmg"
+          xcrun stapler validate "dist/mac-usage-${TAG#v}-universal.dmg"
+          python3 scripts/release.py --tag "$TAG" "dist/mac-usage-${TAG#v}-universal.dmg"
+      - uses: actions/attest-build-provenance@43d14bc2b83dec42d39ecae14e916627a18bb661 # v3
+        with:
+          subject-path: dist/*.dmg
+      - name: Publish immutable GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            echo 'Release already exists; publish a new version instead of replacing assets'; exit 1
+          fi
+          gh release create "$TAG" dist/*.dmg dist/SHA256SUMS dist/release-manifest.json             --verify-tag --title "Mac Usage ${TAG#v}" --generate-notes
+      - name: Remove temporary signing material
+        if: always()
+        run: |
+          security delete-keychain "$RUNNER_TEMP/release.keychain-db" || true
+          rm -f "$RUNNER_TEMP/certificate.p12" "$RUNNER_TEMP/AuthKey.p8" "$RUNNER_TEMP/notarize.zip"
