@@ -16,6 +16,8 @@ jobs:
       - run: xcrun swift-format lint --strict --recursive Package.swift Sources Tests
       - run: swift test
       - run: ./scripts/build-app.sh
+      - run: ./scripts/package-dmg.sh
+      - run: ./scripts/verify-dmg.sh
       - run: python3 scripts/release.py --tag "v$(plutil -extract version raw -o - version.json)" --validate-only
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:

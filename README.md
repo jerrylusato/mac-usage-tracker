@@ -68,7 +68,9 @@ idle timeout, and report preferences live in macOS UserDefaults. Launch at login
 - `Sources/UsageCore`: recording and calendar aggregation without UI dependencies.
 - `Sources/MacUsageTracker`: SwiftUI dashboard, menu bar, collection, storage, and reports.
 - `Tests/UsageCoreTests`: idle, gap, app-switch, and calendar-boundary regression tests.
-- `scripts/build-app.sh`: release build, app bundle, and ad-hoc signing.
+- `scripts/build-app.sh`: universal release build, app bundle, and local signing.
+- `scripts/package-dmg.sh`: DMG containing the app and an Applications shortcut.
+- `scripts/verify-dmg.sh`: mount read-only and verify layout, version, signature, and architectures.
 
 ```sh
 swift test

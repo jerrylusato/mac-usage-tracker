@@ -63,11 +63,12 @@ jobs:
           codesign --verify --strict "$APP"
           spctl --assess --type execute --verbose "$APP"
           test "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$APP/Contents/Info.plist")" = "${TAG#v}"
-          hdiutil create -volname 'Mac Usage' -srcfolder "$APP" -ov -format UDZO "dist/mac-usage-${TAG#v}-universal.dmg"
+          ./scripts/package-dmg.sh
           codesign --sign "$MAC_SIGNING_IDENTITY" --timestamp "dist/mac-usage-${TAG#v}-universal.dmg"
           xcrun notarytool submit "dist/mac-usage-${TAG#v}-universal.dmg" --key "$RUNNER_TEMP/AuthKey.p8"             --key-id "$APPLE_API_KEY_ID" --issuer "$APPLE_API_ISSUER_ID" --wait --timeout 30m
           xcrun stapler staple "dist/mac-usage-${TAG#v}-universal.dmg"
           xcrun stapler validate "dist/mac-usage-${TAG#v}-universal.dmg"
+          ./scripts/verify-dmg.sh
           python3 scripts/release.py --tag "$TAG" "dist/mac-usage-${TAG#v}-universal.dmg"
       - uses: actions/attest-build-provenance@43d14bc2b83dec42d39ecae14e916627a18bb661 # v3
         with:
