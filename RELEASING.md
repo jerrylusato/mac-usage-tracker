@@ -1,12 +1,24 @@
 # Releasing Mac Usage
 
 Source is public under MIT. The shared download website is https://usage.jerrylusato.com.
-Public Mac binaries require Developer ID signing and successful Apple notarization.
-Local ad-hoc builds and verification artifacts are not public distribution releases.
+Public downloads currently use an **ad-hoc signature and are not notarized by Apple**.
+The owner explicitly selects `MAC_RELEASE_MODE=adhoc` as a GitHub repository variable.
+`.github/workflows/release-adhoc.yml` publishes these downloads without Apple credentials.
+There is no automatic fallback from a failed notarized release. Set the mode to `notarized`
+only after configuring the Apple prerequisites below; `.github/workflows/release.yml`
+then performs Developer ID signing and notarization. With neither mode set, publication is skipped.
 
-Public Mac distribution is postponed while Apple membership is deferred. Source and
-local builds remain available; no release tag should be created until the signing
-prerequisites below are configured. Android and the shared website launch first.
+## Installing the public download
+
+Download the universal DMG from the website or GitHub release. Open it and drag Mac Usage
+into Applications, then try opening it. For an unidentified-developer block, use
+**System Settings → Privacy & Security → Open Anyway** and confirm only if you trust
+this project and download. Managed Macs may disallow this exception. Never disable
+Gatekeeper globally or bypass malware/damaged-app alerts. See
+[Apple's guidance](https://support.apple.com/102445).
+Quit a running copy before replacing it; history is stored outside the app bundle.
+Closing the dashboard keeps tracking running in the menu bar. Enable launch at login
+and notifications in the app's Settings.
 
 ## Checks and versioning
 
@@ -44,12 +56,15 @@ team API key permitted to use the notarization service. Configure GitHub reposit
 Do not commit any certificate/private key. The workflow uses a temporary keychain and
 restricted temporary files, then removes them in an always-run cleanup step. Review
 release workflow changes carefully because that workflow can use signing credentials.
-Missing credentials fail the release; there is no unsigned public-release fallback.
+Missing credentials fail the notarized release; there is no automatic ad-hoc fallback.
 You do not need full Xcode on your own Mac to trigger a GitHub-hosted release.
 
 ## Release outputs and verification
 
-The workflow reruns tests, builds both architectures, signs with hardened runtime,
+Both release modes rerun tests, build both architectures, and mount the packaged DMG
+read-only to verify its layout, signature, version/build, and architectures. The ad-hoc
+workflow verifies `Signature=adhoc` and publishes the warning in `RELEASE-NOTES.md`.
+The notarized workflow signs with hardened runtime,
 notarizes the app and staples its ticket, checks Gatekeeper acceptance and the bundle
 version, packages a DMG, then signs/notarizes/staples the DMG. Notarization failures block
 publication. The final DMG is mounted read-only and its packaged app is verified again. The downloaded DMG contains Mac Usage.app and an Applications shortcut; drag the app
@@ -57,14 +72,17 @@ into Applications. `scripts/package-dmg.sh` stages that layout before creating t
 Quit the running copy before replacing it. Usage history is stored outside the app bundle.
 
 Assets: `mac-usage-<version>-universal.dmg`, `SHA256SUMS`, `release-manifest.json`.
-The manifest includes version/build, source commit, sizes and SHA-256 hashes. GitHub
+The manifest includes version/build, source commit, sizes, SHA-256 hashes, `signing`
+(`ad-hoc` or `developer-id`), and a boolean `notarized` status. GitHub
 creates a provenance attestation for the DMG. Verify a downloaded release with:
 
 ```sh
 shasum -a 256 -c SHA256SUMS
 gh attestation verify mac-usage-1.0.0-universal.dmg --repo jerrylusato/mac-usage-tracker
-xcrun stapler validate mac-usage-1.0.0-universal.dmg
 ```
 
-The website discovers published releases; it offers source builds while no signed release
-exists. Updates are manual downloads for now, without network access inside the tracker.
+For a Developer ID release only, also run `xcrun stapler validate` on the DMG.
+Checksums and provenance verify integrity and build origin, not malware safety or Apple approval.
+
+The website discovers published releases and labels their notarization status; it offers
+source builds while no valid release exists. Updates are manual downloads for now, without network access inside the tracker.
