@@ -1,0 +1,15 @@
+name: Verify
+on: [push, pull_request]
+jobs:
+  swift:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: xcrun swift-format lint --strict --recursive Package.swift Sources Tests
+      - run: swift test
+      - run: ./scripts/build-app.sh
+      - run: codesign --verify --strict "dist/Mac Usage.app"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: mac-usage-app
+          path: dist/
