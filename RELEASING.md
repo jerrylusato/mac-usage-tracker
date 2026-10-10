@@ -4,6 +4,10 @@ Source is public under MIT. The shared download website is https://usage.jerrylu
 Public Mac binaries require Developer ID signing and successful Apple notarization.
 Local ad-hoc builds and verification artifacts are not public distribution releases.
 
+Public Mac distribution is postponed while Apple membership is deferred. Source and
+local builds remain available; no release tag should be created until the signing
+prerequisites below are configured. Android and the shared website launch first.
+
 ## Checks and versioning
 
 Pull requests and `main` run Swift formatting, the complete XCTest suite, and a universal
