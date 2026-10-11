@@ -85,4 +85,21 @@ For a Developer ID release only, also run `xcrun stapler validate` on the DMG.
 Checksums and provenance verify integrity and build origin, not malware safety or Apple approval.
 
 The website discovers published releases and labels their notarization status; it offers
-source builds while no valid release exists. Updates are manual downloads for now, without network access inside the tracker.
+source builds while no valid release exists. Updates are manual downloads or Homebrew upgrades, without network access inside the tracker.
+
+## Shared Homebrew tap
+
+`jerrylusato/homebrew-tap` maintains `Casks/mac-usage.rb` for the universal DMG. Users install
+with `brew install --cask jerrylusato/tap/mac-usage` and upgrade with `brew update` followed
+by `brew upgrade --cask mac-usage`. Quit the app before upgrading. A manually installed
+app can conflict with the first Homebrew installation; move only the app bundle aside.
+History is outside the bundle and normal uninstall preserves it. No Gatekeeper bypass
+is performed by the cask; the ad-hoc release's manual approval requirement still applies.
+
+The tap owns hourly release discovery and can also be refreshed with **Run workflow**.
+It verifies release metadata, SHA-256, and build provenance for the exact commit/tag and
+release workflow before proposing only a version/checksum change. Homebrew validation
+and installation checks protect the tap's main branch. Unattended PR creation/auto-merge
+requires the tap's Actions PR permission and auto-merge settings; see its README for
+setup status. Mac release jobs need no cross-repository token or extra signing credential.
+Do not move tags or replace assets: the updater rejects replacements and downgrades.

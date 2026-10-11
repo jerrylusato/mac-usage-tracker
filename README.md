@@ -12,6 +12,18 @@ Applications, then try opening it. For an unidentified-developer block, use
 **System Settings → Privacy & Security → Open Anyway** if you trust the download.
 See [installation and verification details](RELEASING.md#installing-the-public-download).
 
+Alternatively, install with the shared [Homebrew tap](https://github.com/jerrylusato/homebrew-tap):
+
+```sh
+brew install --cask jerrylusato/tap/mac-usage
+brew update
+brew upgrade --cask mac-usage
+```
+
+Quit the app before upgrading. The same macOS first-launch approval applies. If you
+already installed manually, move that app bundle aside first; your history is stored separately.
+
+
 ## Build and run
 
 Requires macOS 13+ and Swift 5.10 or newer. Building needs Xcode Command Line Tools;
