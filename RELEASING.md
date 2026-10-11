@@ -96,7 +96,7 @@ app can conflict with the first Homebrew installation; move only the app bundle 
 History is outside the bundle and normal uninstall preserves it. No Gatekeeper bypass
 is performed by the cask; the ad-hoc release's manual approval requirement still applies.
 
-The tap owns hourly release discovery and can also be refreshed with **Run workflow**.
+The tap owns daily release discovery at 03:43 UTC (06:43 EAT) and can also be refreshed with **Run workflow**.
 It verifies release metadata, SHA-256, and build provenance for the exact commit/tag and
 release workflow before proposing only a version/checksum change. Homebrew validation
 and installation checks protect the tap's main branch. Unattended PR creation/auto-merge
